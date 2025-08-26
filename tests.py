@@ -24,47 +24,49 @@ class TestBooksCollector:
     # напиши свои тесты ниже
     # чтобы тесты были независимыми в каждом из них создавай отдельный экземпляр класса BooksCollector()
 
-    @pytest.fixture
-    def collector(self):
-        #Фикстура для создания экземпляра BooksCollector
-        return BooksCollector()
-
     # Тесты для add_new_book
     def test_add_new_book_valid_name(self, collector):
         #Тест добавления книги с валидным названием
         collector.add_new_book('Война и мир')
         assert 'Война и мир' in collector.books_genre
-        assert collector.books_genre['Война и мир'] == ''
+        assert collector.get_book_genre('Война и мир') == ''
 
     def test_add_new_book_max_length_name(self, collector):
         #Тест добавления книги с максимальной длиной названия (40 символов)
         long_name = 'A' * 40
         collector.add_new_book(long_name)
-        assert long_name in collector.books_genre
+        assert collector.get_book_genre(long_name) is not None
 
-    def test_add_new_book_too_long_name(self, collector):
+
+
+    @pytest.mark.parametrize('too_long_name', [
+        ('A'* 41),
+        ('Очень длинное название книги, которое точно превышает лимит возможных символов'),
+        ('B'* 100),
+        ('C'* 1000),
+    ] )
+    def test_add_new_book_too_long_name(self, collector, too_long_name):
         #Тест попытки добавления книги с слишком длинным названием
-        too_long_name = 'A' * 41
         collector.add_new_book(too_long_name)
-        assert too_long_name not in collector.books_genre
+        assert collector.get_book_genre(too_long_name) is None
 
     # Тесты для set_book_genre
     def test_set_book_genre_valid(self, collector):
         #Тест установки валидного жанра для существующей книги
         collector.add_new_book('1984')
         collector.set_book_genre('1984', 'Фантастика')
-        assert collector.books_genre['1984'] == 'Фантастика'
+        assert collector.get_book_genre('1984') == 'Фантастика'
 
     def test_set_book_genre_nonexistent_book(self, collector):
         #Тест установки жанра для несуществующей книги
         collector.set_book_genre('Несуществующая книга', 'Фантастика')
-        assert 'Несуществующая книга' not in collector.books_genre
+        assert 'Несуществующая книга' not in collector.get_books_genre()
 
     def test_set_book_genre_invalid_genre(self, collector):
         #Тест установки невалидного жанра
         collector.add_new_book('Мастер и Маргарита')
         collector.set_book_genre('Мастер и Маргарита', 'Несуществующий жанр')
-        assert collector.books_genre['Мастер и Маргарита'] == ''
+        assert collector.get_book_genre('Мастер и Маргарита') == ''
 
 
     # Тесты для get_book_genre
@@ -78,7 +80,7 @@ class TestBooksCollector:
     def test_get_book_genre_book_without_genre(self, collector):
         #Тест получения жанра книги без установленного жанра
         collector.add_new_book('Книга без жанра')
-        assert collector.get_book_genre('Книга без жанра') is None
+        assert collector.get_book_genre('Книга без жанра') == ''
 
     # Тесты для get_books_with_specific_genre
     def test_get_books_with_specific_genre_nonexistent(self, collector):
@@ -114,12 +116,12 @@ class TestBooksCollector:
         #Тест добавления валидной книги в избранное
         collector.add_new_book('Любимая книга')
         collector.add_book_in_favorites('Любимая книга')
-        assert 'Любимая книга' in collector.favorites
+        assert 'Любимая книга' in collector.get_list_of_favorites_books()
 
     def test_add_book_in_favorites_nonexistent_book(self, collector):
         #Тест добавления несуществующей книги в избранное
         collector.add_book_in_favorites('Несуществующая книга')
-        assert 'Несуществующая книга' not in collector.favorites
+        assert 'Несуществующая книга' not in collector.get_list_of_favorites_books()
 
     # Тесты для delete_book_from_favorites
     def test_delete_book_from_favorites_existing(self, collector):
@@ -127,15 +129,15 @@ class TestBooksCollector:
         collector.add_new_book('Книга')
         collector.add_book_in_favorites('Книга')
         collector.delete_book_from_favorites('Книга')
-        assert 'Книга' not in collector.favorites
+        assert 'Книга' not in collector.get_list_of_favorites_books()
     
     def test_delete_book_from_favorites_nonexistent(self, collector):
         #Тест удаления несуществующей книги из избранного
         collector.add_new_book('Книга')
         collector.add_book_in_favorites('Книга')
-        initial_favorites = collector.favorites.copy()
+        initial_favorites = collector.get_list_of_favorites_books().copy()
         collector.delete_book_from_favorites('Несуществующая книга')
-        assert collector.favorites == initial_favorites
+        assert collector.get_list_of_favorites_books() == initial_favorites
 
     # Тесты для get_list_of_favorites_books
     def test_get_list_of_favorites_books_empty(self, collector):
@@ -153,3 +155,4 @@ class TestBooksCollector:
         assert len(result) == 2
         assert 'Книга 1' in result
         assert 'Книга 2' in result
+
